@@ -1,10 +1,7 @@
 import Foundation
 
-/// Represents audio data and its optional transcript
 public struct Audio: Equatable, Sendable {
-    /// Base64-encoded audio bytes.
     public var audio: Data
-    /// The transcript of the audio.
     public var transcript: String?
 
     public init(audio: Data = Data(), transcript: String? = nil) {
@@ -13,14 +10,11 @@ public struct Audio: Equatable, Sendable {
     }
 }
 
-/// Represents the format of audio data
 public enum AudioFormat: String, Codable, Sendable {
     case pcm16
     case g711_ulaw
     case g711_alaw
 }
-
-// MARK: - Codable Implementation
 
 extension Audio: Decodable {
     private enum CodingKeys: String, CodingKey {

@@ -1,5 +1,14 @@
 import Foundation
 
+/// Represents events sent from the client to the OpenAI Realtime server.
+/// These events form the client-side of the bidirectional communication channel,
+/// allowing control over the conversation flow and model responses.
+///
+/// The events are organized into categories:
+/// - Session management (updateSession)
+/// - Audio input handling (appendInputAudioBuffer, commitInputAudioBuffer)
+/// - Conversation management (createConversationItem, truncateConversationItem)
+/// - Response control (createResponse, cancelResponse)
 public enum ClientEvent: Equatable, Sendable {
 	public struct SessionUpdateEvent: Encodable, Equatable, Sendable {
 		/// Optional client-generated ID used to identify this event.

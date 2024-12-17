@@ -1,5 +1,14 @@
 import Foundation
 
+/// Represents events received from the OpenAI Realtime server.
+/// These events form the server-side of the bidirectional communication channel,
+/// responding to client events and providing updates about the conversation state.
+///
+/// The events follow a hierarchical structure:
+/// - Session events (creation, updates)
+/// - Conversation events (creation, item management)
+/// - Response events (text, audio, function calls)
+/// - Error events
 public enum ServerEvent: Sendable {
 	public struct ErrorEvent: Decodable, Sendable {
 		/// The unique ID of the server event.

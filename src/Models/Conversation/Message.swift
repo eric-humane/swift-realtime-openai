@@ -1,6 +1,8 @@
 import Foundation
 
-/// Represents a message in a conversation
+/// Represents a message in a conversation, supporting both text and audio content.
+/// Messages can contain multiple content parts, allowing for rich multimodal interactions
+/// where both text and audio can be sent or received together.
 public struct Message: Codable, Equatable, Sendable {
     public enum Content: Equatable, Sendable {
         case text(String)

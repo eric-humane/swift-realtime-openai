@@ -1,6 +1,5 @@
 import Foundation
 
-/// Represents a tool (function) that can be used by the model
 public struct Tool: Codable, Equatable, Sendable {
     public struct FunctionParameters: Codable, Equatable, Sendable {
         public var type: JSONType
@@ -152,7 +151,7 @@ public struct Tool: Codable, Equatable, Sendable {
     }
 }
 
-/// Represents how the model chooses tools
+/// Represents how the model chooses tools during conversations
 public enum ToolChoice: Equatable, Sendable {
     case auto
     case none
