@@ -4,6 +4,46 @@ import FoundationNetworking
 #endif
 import Models
 
+/// A class that manages real-time communication with OpenAI's API through WebSocket connections.
+/// Provides both async/await and callback-based interfaces for handling server events.
+///
+/// Example usage:
+/// ```swift
+/// // Initialize the API with your auth token
+/// let api = RealtimeAPI(authToken: "your-token")
+///
+/// // Handle specific event types
+/// api.onText { textEvent in
+///     print("Received text: \(textEvent.content)")
+/// }
+///
+/// api.onError { errorEvent in
+///     print("Error: \(errorEvent.message)")
+/// }
+///
+/// // Send events to the server
+/// try await api.send(event: .init(text: "Hello!"))
+///
+/// // Or use the async stream for all events
+/// for try await event in api.events {
+///     switch event {
+///     case let textEvent as ServerEvent.Text:
+///         print("Text: \(textEvent.content)")
+///     case let errorEvent as ServerEvent.Error:
+///         print("Error: \(errorEvent.message)")
+///     default:
+///         break
+///     }
+/// }
+/// ```
+///
+/// Error Handling:
+/// The API provides multiple ways to handle errors:
+/// 1. Through the `onError` callback
+/// 2. Via the async stream's error handling
+/// 3. Through thrown errors from the `send` method
+///
+/// All errors conform to `OpenAIRealtimeError` for consistent error handling.
 public final class RealtimeAPI: NSObject, Sendable {
     @MainActor public var onDisconnect: (@Sendable () -> Void)?
     public let events: AsyncThrowingStream&lt;ServerEvent, Error&gt;

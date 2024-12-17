@@ -4,6 +4,51 @@ public enum ConversationError: Error {
 	case sessionNotFound
 }
 
+/// A class that manages real-time conversations with OpenAI's API.
+/// Handles both text and audio modalities, manages conversation state,
+/// and provides a high-level interface for interaction.
+///
+/// Example usage:
+/// ```swift
+/// // Initialize a conversation
+/// let conversation = Conversation(authToken: "your-token")
+///
+/// // Wait for connection and send a text message
+/// try await conversation.whenConnected {
+///     try await conversation.send(from: .user, text: "Hello!")
+/// }
+///
+/// // Handle audio input with automatic turn detection
+/// try await conversation.send(audioDelta: audioData)
+///
+/// // Handle audio input with manual turn detection
+/// try await conversation.send(audioDelta: audioData, commit: true)
+///
+/// // Update session configuration
+/// try await conversation.updateSession { session in
+///     session.temperature = 0.7
+///     session.maxOutputTokens = 100
+/// }
+///
+/// // Handle function calls
+/// try await conversation.send(result: .init(
+///     id: "func-call-id",
+///     output: "Function result"
+/// ))
+/// ```
+///
+/// Error Handling:
+/// The conversation provides multiple ways to handle errors:
+/// 1. Through the `errors` AsyncStream
+/// 2. Via thrown errors from methods
+/// 3. Through the `ConversationError` enum
+///
+/// State Management:
+/// The conversation maintains several observable properties:
+/// - `id`: The unique identifier of the conversation
+/// - `session`: The current session configuration
+/// - `entries`: The list of conversation items
+/// - `connected`: The current connection status
 @Observable
 public final class Conversation: Sendable {
 	private let client: RealtimeAPI
@@ -71,8 +116,17 @@ public final class Conversation: Sendable {
 		}
 	}
 
-	/// Make changes to the current session
-	/// Note that this will fail if the session hasn't started yet.
+	/// Make changes to the current session configuration
+	/// - Parameter callback: A closure that modifies the session configuration
+	/// - Throws: `ConversationError.sessionNotFound` if the session hasn't started yet
+	///
+	/// Example:
+	/// ```swift
+	/// try await conversation.updateSession { session in
+	///     session.temperature = 0.7
+	///     session.maxOutputTokens = 100
+	/// }
+	/// ```
 	public func updateSession(withChanges callback: (inout Session) -> Void) async throws {
 		guard var session = await session else {
 			throw ConversationError.sessionNotFound
@@ -95,24 +149,60 @@ public final class Conversation: Sendable {
 		try await client.send(event: event)
 	}
 
-	/// Append audio bytes to the conversation.
-	/// Commit the audio to trigger a model response when server turn detection is disabled.
-	public func send(audioDelta audio: Data, commit: Bool = false) async throws {
-		try await send(event: .appendInputAudioBuffer(encoding: audio))
-		if commit { try await send(event: .commitInputAudioBuffer()) }
-	}
+    /// Append audio bytes to the conversation.
+    /// - Parameters:
+    ///   - audio: The audio data to append to the conversation
+    ///   - commit: Whether to commit the audio buffer. Set to true when server turn detection is disabled
+    ///            to manually indicate the end of an audio segment.
+    /// - Throws: Errors from the underlying API if the audio cannot be sent
+    public func send(audioDelta audio: Data, commit: Bool = false) async throws {
+        try await send(event: .appendInputAudioBuffer(encoding: audio))
+        if commit { try await send(event: .commitInputAudioBuffer()) }
+    }
 
-	/// Send a text message and wait for a response
-	public func send(from role: Item.ItemRole, text: String, response: Response.Config? = nil) async throws {
-		try await send(event: .createConversationItem(Item(message: Item.Message(id: String(randomLength: 32), from: role, content: [.input_text(text)]))))
-		try await send(event: .createResponse(response))
-	}
+    /// Send a text message and wait for a response
+    /// - Parameters:
+    ///   - role: The role of the sender (e.g., .user, .assistant)
+    ///   - text: The text content to send
+    ///   - response: Optional configuration for the model's response
+    /// - Throws: Errors from the underlying API if the message cannot be sent
+    ///
+    /// Example:
+    /// ```swift
+    /// // Send a user message
+    /// try await conversation.send(from: .user, text: "What's the weather?")
+    ///
+    /// // Send with custom response configuration
+    /// try await conversation.send(
+    ///     from: .user,
+    ///     text: "Translate to French",
+    ///     response: .init(temperature: 0.7)
+    /// )
+    /// ```
+    public func send(from role: Item.ItemRole, text: String, response: Response.Config? = nil) async throws {
+        try await send(event: .createConversationItem(Item(message: Item.Message(id: String(randomLength: 32), from: role, content: [.input_text(text)]))))
+        try await send(event: .createResponse(response))
+    }
 
-	/// Send the response of a function call
+	/// Send the result of a function call back to the conversation
+	/// - Parameter output: The function call output containing the result
+	/// - Throws: Errors from the underlying API if the result cannot be sent
+	///
+	/// This method is used to respond to function calls from the model. When the model
+	/// makes a function call, you can execute the function and send its result back
+	/// using this method.
+	///
+	/// Example:
+	/// ```swift
+	/// // Respond to a function call
+	/// try await conversation.send(result: .init(
+	///     id: functionCall.id,
+	///     output: "Function execution result"
+	/// ))
+	/// ```
 	public func send(result output: Item.FunctionCallOutput) async throws {
 		try await send(event: .createConversationItem(Item(with: output)))
 	}
-}
 
 private extension Conversation {
 	@MainActor func handleEvent(_ event: ServerEvent) {
