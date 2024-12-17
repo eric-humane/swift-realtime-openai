@@ -204,6 +204,45 @@ public final class Conversation: Sendable {
 		try await send(event: .createConversationItem(Item(with: output)))
 	}
 
+	/// Send a message and wait for the assistant's response
+	/// - Parameter message: The text message to send
+	/// - Returns: The assistant's response text
+	/// - Throws: Errors from the underlying API or if no response is received
+	public func chat(_ message: String) async throws -> String {
+		// Send the message
+		try await send(from: .user, text: message)
+
+		// Wait for and extract assistant's response
+		let startIndex = await entries.count
+		while true {
+			// Check for new entries
+			let currentEntries = await entries
+			guard currentEntries.count > startIndex else {
+				try await Task.sleep(for: .milliseconds(100))
+				continue
+			}
+
+			// Look for assistant's text response
+			for entry in currentEntries[startIndex...] {
+				if case let .message(message) = entry,
+				   message.from == .assistant,
+				   case let .text(text) = message.content.first {
+					return text
+				}
+			}
+
+			try await Task.sleep(for: .milliseconds(100))
+		}
+	}
+
+	/// Start an audio conversation by configuring the session for audio modality
+	/// - Throws: Errors from the underlying API or if session update fails
+	public func startAudioChat() async throws {
+		try await updateSession { session in
+			session.modalities = [.audio]
+		}
+	}
+
 private extension Conversation {
 	@MainActor func handleEvent(_ event: ServerEvent) {
 		switch event {
