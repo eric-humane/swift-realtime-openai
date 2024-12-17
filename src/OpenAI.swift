@@ -2,6 +2,7 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+import Models
 
 public final class RealtimeAPI: NSObject, Sendable {
 	@MainActor public var onDisconnect: (@Sendable () -> Void)?
@@ -88,6 +89,6 @@ extension RealtimeAPI: URLSessionWebSocketDelegate {
 	}
 }
 
-enum RealtimeAPIError: Error {
+enum RealtimeAPIError: OpenAIRealtimeError {
 	case invalidMessage
 }
