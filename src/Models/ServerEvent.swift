@@ -1,5 +1,8 @@
 import Foundation
 
+/// A comprehensive enumeration of all server events in the OpenAI Realtime API.
+/// Each event carries specific data relevant to its type and includes a unique event ID.
+/// Events represent various stages of conversation, audio processing, and API interactions.
 public enum ServerEvent: Sendable {
 	public struct ErrorEvent: Decodable, Sendable {
 		/// The unique ID of the server event.
